@@ -1,0 +1,113 @@
+Timing Report for 2-Bit JPEG Decoder with Parallel Processing (Gate-Level Model)
+This report updates the timing parameters for the 2-bit JPEG decoder modified to process two 2-bit pixels (4 bits total) in parallel. The decoder retains its state machine (IDLE → DECODE → OUTPUT → IDLE) with a clock period of 10 ns.
+1. Clock Period
+
+Clock Period: 10 ns
+Same as the original design (100 MHz clock).
+
+
+
+2. Total Circuit Delay
+
+Logical Delay (Clock Cycles): 20 ns
+Still takes 2 clock cycles to process an input (now 2 pixels).
+
+
+Estimated Combinational Gate-Level Delay: 195 ps
+Critical path unchanged: 115 ps (Cycle 1) + 80 ps (Cycle 2) = 195 ps.
+
+
+
+3. Delay Between Input and Output
+
+Delay (Waveform): 20 ns
+Same as the original design (e.g., 30 ns to 50 ns).
+
+
+Estimated Combinational Gate-Level Delay: 195 ps
+Unchanged, as parallel processing does not affect the critical path.
+
+
+
+4. Delay Between valid_in and valid_out
+
+Delay (Waveform): 20 ns
+Same as the original design.
+
+
+Estimated Combinational Gate-Level Delay: 180 ps
+Unchanged.
+
+
+
+5. Time Taken for 2-Bit Image Decoding (Single 2-Bit Pixel)
+
+Time per Pixel (Effective): 10 ns
+Total time for 2 pixels: 20 ns.
+Effective time per pixel: 20 ns / 2 pixels = 10 ns.
+
+
+Total Time for 2 Pixels: 20 ns
+Same as the original decoding time, but now processes 2 pixels.
+
+
+
+6. Throughput
+
+Throughput: 0.1 pixels/ns
+2 pixels every 20 ns = 2 / 20 = 0.1 pixels/ns.
+Improvement: 2x the original design (0.05 pixels/ns).
+
+
+
+7. State Transition Timings (Waveform-Based)
+
+Same as the original design, but each operation processes 2 pixels:
+Test Case 1 (Input 0000): 30 ns to 50 ns → 20 ns.
+Test Case 2 (Input 0101): 60 ns to 80 ns → 20 ns.
+Test Case 3 (Input 1001): 90 ns to 110 ns → 20 ns.
+Test Case 4 (Input 1110): 120 ns to 140 ns → 20 ns.
+
+
+
+Summary Table
+
+
+
+Parameter
+Original Design
+Parallel Design
+
+
+
+Clock Period
+10 ns
+10 ns
+
+
+Total Circuit Delay
+20 ns
+20 ns
+
+
+Delay Between Input and Output
+20 ns
+20 ns
+
+
+Delay Between valid_in and valid_out
+20 ns
+20 ns
+
+
+Time for 2-Bit Image Decoding (Per Pixel)
+20 ns
+10 ns (effective)
+
+
+Throughput
+0.05 pixels/ns
+0.1 pixels/ns
+
+
+Note: Parallel processing doubles the throughput by processing 2 pixels at once, effectively halving the decoding time per pixel (from 20 ns to 10 ns). The latency per operation remains 20 ns, but more data is processed per operation.
