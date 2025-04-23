@@ -1,0 +1,157 @@
+
+This report summarizes the key timing parameters for the 2-bit JPEG decoder, derived from the simulation waveform and gate-level design analysis. The decoder processes 2-bit input data using a state machine (IDLE → DECODE → OUTPUT → IDLE) with a clock period of 10 ns.
+1. Clock Period
+
+Clock Period: 10 ns
+Derived from the testbench (forever #5 clk = ~clk), the clock toggles every 5 ns, resulting in a 10 ns period.
+
+
+
+2. Total Circuit Delay
+
+Logical Delay (Clock Cycles): 20 ns
+The decoder takes 2 clock cycles (IDLE → DECODE → OUTPUT) to process an input.
+2 cycles × 10 ns = 20 ns.
+
+
+Estimated Combinational Gate-Level Delay: 195 ps
+Critical path across 2 cycles:
+Cycle 1 (IDLE → DECODE): 115 ps (1 NOR + 2 AND + 1 OR + DFF clock-to-Q).
+Cycle 2 (DECODE → OUTPUT): 80 ps (output logic + DFF clock-to-Q).
+Total: 115 ps + 80 ps = 195 ps.
+
+
+Note: The synchronous design makes the effective delay 20 ns (governed by clock cycles).
+
+
+
+3. Delay Between Input and Output
+
+Definition: Time from when data_in is applied with valid_in = 1 to when pixel_out is valid with valid_out = 1.
+Delay (Waveform): 20 ns
+valid_in asserted at 30 ns, valid_out asserted at 50 ns.
+50 ns - 30 ns = 20 ns (2 clock cycles).
+
+
+Estimated Combinational Gate-Level Delay: 195 ps
+Same as the total circuit delay, as it follows the same critical path.
+
+
+
+4. Delay Between valid_in and valid_out
+
+Definition: Time from when valid_in is asserted to when valid_out is asserted.
+Delay (Waveform): 20 ns
+valid_in goes high at 30 ns, valid_out goes high at 50 ns.
+50 ns - 30 ns = 20 ns (2 clock cycles).
+
+
+Estimated Combinational Gate-Level Delay: 180 ps
+Cycle 1: 115 ps (state transition logic).
+Cycle 2: 65 ps (valid_out logic: 1 AND + DFF clock-to-Q).
+Total: 115 ps + 65 ps = 180 ps.
+Effective delay remains 20 ns due to synchronous design.
+
+
+
+5. Time Taken for 2-Bit Image Decoding (Single 2-Bit Pixel)
+
+Definition: Time to decode one 2-bit input (e.g., one pixel).
+Time (Waveform): 20 ns
+From valid_in = 1 at 30 ns to valid_out = 1 at 50 ns: 20 ns (2 clock cycles).
+
+
+Estimated Combinational Gate-Level Delay: 180 ps
+Same as the delay between valid_in and valid_out.
+
+
+
+6. State Transition Timings (Waveform-Based)
+The following timings are observed for each test case in the waveform (0 ns to 180 ns):
+
+Test Case 1 (Input 00):
+
+valid_in asserted: 30 ns
+State to DECODE: 40 ns
+State to OUTPUT, valid_out asserted: 50 ns
+State back to IDLE: 60 ns
+Decoding Time: 20 ns (30 ns to 50 ns)
+
+
+Test Case 2 (Input 01):
+
+valid_in asserted: 60 ns
+State to DECODE: 70 ns
+State to OUTPUT, valid_out asserted: 80 ns
+State back to IDLE: 90 ns
+Decoding Time: 20 ns (60 ns to 80 ns)
+
+
+Test Case 3 (Input 10):
+
+valid_in asserted: 90 ns
+State to DECODE: 100 ns
+State to OUTPUT, valid_out asserted: 110 ns
+State back to IDLE: 120 ns
+Decoding Time: 20 ns (90 ns to 110 ns)
+
+
+Test Case 4 (Input 11):
+
+valid_in asserted: 120 ns
+State to DECODE: 130 ns
+State to OUTPUT, valid_out asserted: 140 ns
+State back to IDLE: 150 ns
+Decoding Time: 20 ns (120 ns to 140 ns)
+
+
+Test Case 5 (No valid_in):
+
+valid_in remains 0: 150 ns to 180 ns
+No state transition, no output.
+Decoding Time: N/A
+
+
+
+7. Reset Timing
+
+Reset Assertion: 0 ns to 20 ns
+Reset Deassertion: 20 ns
+Outputs Cleared: By 20 ns (pixel_out = 00, valid_out = 0)
+
+Summary Table
+
+
+
+Parameter
+Value (Waveform)
+Value (Gate-Level Estimate)
+
+
+
+Clock Period
+10 ns
+N/A
+
+
+Total Circuit Delay
+20 ns
+195 ps
+
+
+Delay Between Input and Output
+20 ns
+195 ps
+
+
+Delay Between valid_in and valid_out
+20 ns
+180 ps
+
+
+Time for 2-Bit Image Decoding
+20 ns
+180 ps
+
+
+Note: All waveform-based timings are governed by the synchronous design (clock period and cycles). Gate-level estimates assume typical delays (e.g., AND: 15 ps, NOR: 20 ps, DFF clock-to-Q: 50 ps) but are not reflected in the waveform due to the synchronous nature of the design.
