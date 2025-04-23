@@ -1,0 +1,88 @@
+module jpeg_decoder_2bit_parallel (
+    input wire clk,              // Clock input
+    input wire rst_n,            // Active-low reset
+    input wire [3:0] data_in,    // 4-bit input data (two 2-bit pixels)
+    input wire valid_in,         // Input data valid signal
+    output wire [3:0] pixel_out, // 4-bit decoded pixel output (two 2-bit pixels)
+    output wire valid_out        // Output valid signal
+);
+
+    // Internal wires for state machine
+    wire [1:0] state, next_state;
+    wire [3:0] buffer, buffer_next; // Buffer for two 2-bit pixels
+    wire valid_out_next;
+
+    // State encoding
+    localparam IDLE   = 2'b00,
+               DECODE = 2'b01,
+               OUTPUT = 2'b10;
+
+    // Flip-flops for state and buffer (using DFFs)
+    dff state_ff0 (.clk(clk), .rst_n(rst_n), .d(next_state[0]), .q(state[0]));
+    dff state_ff1 (.clk(clk), .rst_n(rst_n), .d(next_state[1]), .q(state[1]));
+    dff buffer_ff0 (.clk(clk), .rst_n(rst_n), .d(buffer_next[0]), .q(buffer[0]));
+    dff buffer_ff1 (.clk(clk), .rst_n(rst_n), .d(buffer_next[1]), .q(buffer[1]));
+    dff buffer_ff2 (.clk(clk), .rst_n(rst_n), .d(buffer_next[2]), .q(buffer[2]));
+    dff buffer_ff3 (.clk(clk), .rst_n(rst_n), .d(buffer_next[3]), .q(buffer[3]));
+    dff valid_out_ff (.clk(clk), .rst_n(rst_n), .d(valid_out_next), .q(valid_out));
+
+    // State transition logic (gate-level)
+    wire state_is_idle, state_is_decode, state_is_output;
+    wire idle_to_decode, decode_to_output, output_to_idle;
+
+    // State decoding
+    nor (state_is_idle, state[0], state[1]);           // IDLE: state = 00
+    and (state_is_decode, state[0], ~state[1]);        // DECODE: state = 01
+    and (state_is_output, ~state[0], state[1]);        // OUTPUT: state = 10
+
+    // Transition conditions
+    and (idle_to_decode, state_is_idle, valid_in);     // IDLE -> DECODE when valid_in
+    and (decode_to_output, state_is_decode, 1'b1);     // DECODE -> OUTPUT always
+    and (output_to_idle, state_is_output, 1'b1);       // OUTPUT -> IDLE always
+
+    // Next state logic
+    wire next_state0_decode, next_state0_output;
+    wire next_state1_decode, next_state1_output;
+    and (next_state0_decode, idle_to_decode, 1'b1);    // Next state[0] = 1 for DECODE
+    and (next_state0_output, decode_to_output, 1'b0);  // Next state[0] = 0 for OUTPUT
+    or  (next_state[0], next_state0_decode, next_state0_output);
+
+    and (next_state1_decode, idle_to_decode, 1'b0);    // Next state[1] = 0 for DECODE
+    and (next_state1_output, decode_to_output, 1'b1);  // Next state[1] = 1 for OUTPUT
+    or  (next_state[1], next_state1_decode, next_state1_output);
+
+    // Buffer logic for two pixels
+    wire load_buffer;
+    and (load_buffer, state_is_idle, valid_in);        // Load buffer in IDLE when valid_in
+    and (buffer_next[0], load_buffer, data_in[0]);     // Pixel 1, bit 0
+    and (buffer_next[1], load_buffer, data_in[1]);     // Pixel 1, bit 1
+    and (buffer_next[2], load_buffer, data_in[2]);     // Pixel 2, bit 0
+    and (buffer_next[3], load_buffer, data_in[3]);     // Pixel 2, bit 1
+
+    // Output logic for two pixels
+    wire [3:0] pixel_out_next;
+    and (pixel_out_next[0], state_is_decode, buffer[0]); // Pixel 1, bit 0
+    and (pixel_out_next[1], state_is_decode, buffer[1]); // Pixel 1, bit 1
+    and (pixel_out_next[2], state_is_decode, buffer[2]); // Pixel 2, bit 0
+    and (pixel_out_next[3], state_is_decode, buffer[3]); // Pixel 2, bit 1
+    assign pixel_out = pixel_out_next;
+
+    // Valid output logic
+    and (valid_out_next, state_is_output, 1'b1);       // valid_out = 1 in OUTPUT state
+
+endmodule
+
+// D Flip-Flop module for gate-level implementation
+module dff (
+    input wire clk,
+    input wire rst_n,
+    input wire d,
+    output reg q
+);
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            q <= 1'b0;
+        else
+            q <= d;
+    end
+endmodule
