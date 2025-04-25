@@ -1,0 +1,81 @@
+module jpeg_decoder_2bit_optimized (
+    input wire clk,              // Clock input
+    input wire rst_n,            // Active-low reset
+    input wire [3:0] data_in,    // 4-bit input data (two 2-bit pixels)
+    input wire valid_in,         // Input data valid signal
+    output wire [3:0] pixel_out, // 4-bit decoded pixel output (two 2-bit pixels)
+    output wire valid_out        // Output valid signal
+);
+
+    // State encoding (one-hot)
+    localparam IDLE   = 3'b001,
+               DECODE = 3'b010,
+               OUTPUT = 3'b100;
+
+    // Internal signals
+    reg [2:0] state, next_state;
+    reg [3:0] buffer;           // Buffer for two 2-bit pixels
+    reg [3:0] pipe_buffer;      // Pipeline register between DECODE and OUTPUT
+    reg pipe_valid;             // Pipeline valid signal
+
+    // LUT for state transitions and control (address: {state[2:0], valid_in})
+    reg [4:0] lut [0:7]; // 5-bit output: {next_state[2:0], valid_out_next, enable_output}
+    initial begin
+        // LUT entries: {next_state, valid_out_next, enable_output}
+        lut[0] = 5'b001_0_0; // State 000 (invalid), stay in IDLE
+        lut[1] = 5'b001_0_0; // State 000, valid_in = 1
+        lut[2] = 5'b010_0_0; // State 001 (IDLE), valid_in = 0, stay in IDLE
+        lut[3] = 5'b010_0_0; // State 001 (IDLE), valid_in = 1, go to DECODE
+        lut[4] = 5'b100_0_1; // State 010 (DECODE), valid_in = 0, go to OUTPUT
+        lut[5] = 5'b100_0_1; // State 010 (DECODE), valid_in = 1, go to OUTPUT
+        lut[6] = 5'b001_1_0; // State 100 (OUTPUT), valid_in = 0, go to IDLE
+        lut[7] = 5'b001_1_0; // State 100 (OUTPUT), valid_in = 1, go to IDLE
+    end
+
+    wire [2:0] lut_addr = {state[2:0]};
+    wire [4:0] lut_out = lut[{lut_addr, valid_in}];
+    wire enable_output = lut_out[0];
+    wire valid_out_next = lut_out[1];
+    assign next_state = lut_out[4:2];
+
+    // State and buffer flip-flops
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            state <= IDLE;
+            buffer <= 4'b0000;
+            pipe_buffer <= 4'b0000;
+            pipe_valid <= 1'b0;
+        end
+        else begin
+            state <= next_state;
+            if (state[0] && valid_in) // IDLE and valid_in
+                buffer <= data_in;
+            if (state[1]) begin // DECODE
+                pipe_buffer <= buffer;
+                pipe_valid <= 1'b1;
+            end
+            else
+                pipe_valid <= 1'b0;
+        end
+    end
+
+    // Output logic
+    assign pixel_out = enable_output ? buffer : pipe_buffer;
+    dff valid_out_ff (.clk(clk), .rst_n(rst_n), .d(valid_out_next), .q(valid_out));
+
+endmodule
+
+// D Flip-Flop module for gate-level implementation
+module dff (
+    input wire clk,
+    input wire rst_n,
+    input wire d,
+    output reg q
+);
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n)
+            q <= 1'b0;
+        else
+            q <= d;
+    end
+endmodule
